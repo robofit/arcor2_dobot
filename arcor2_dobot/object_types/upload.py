@@ -7,6 +7,7 @@ from arcor2.object_types.upload import upload
 def main():
 
     upload("arcor2_dobot.object_types.dobot/Dobot")
+    upload("arcor2_dobot.object_types.ql-700/QL700")
 
 
 if __name__ == "__main__":
