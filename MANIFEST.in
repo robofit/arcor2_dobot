@@ -1,0 +1,2 @@
+include arcor2_dobot/VERSION
+include arcor2_dobot/data/*.zip

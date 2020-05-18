@@ -6,6 +6,7 @@ setup(
     version=arcor2_dobot.version(),
     include_package_data=True,
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
+    package_data={"arcor2": ["py.typed"]},
     url='https://github.com/robofit/arcor2_dobot',
     download_url=f'https://github.com/robofit/arcor2_dobot/archive/{arcor2_dobot.version()}.tar.gz',
     license='LGPL',
@@ -13,7 +14,7 @@ setup(
     author_email='imaterna@fit.vutbr.cz',
     description='',
     install_requires=[
-        'arcor2==0.1.*',
+        'arcor2==0.5.*',
         'pydobot'
     ],
     zip_safe=False

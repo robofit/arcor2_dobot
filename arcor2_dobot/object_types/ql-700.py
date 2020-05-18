@@ -36,7 +36,7 @@ class QL700(Generic):
         img = img.resize((PX_WIDTH, PX_WIDTH))
 
         status = send(instructions=convert(self.qlr, [img], "62", cut=False), printer_identifier="usb://0x04f9:0x2042",
-             backend_identifier="pyusb", blocking=True)
+                      backend_identifier="pyusb", blocking=True)
 
         if False in (status["did_print"], status["ready_for_next_job"]):
             raise QL700Exception()
@@ -47,11 +47,10 @@ class QL700(Generic):
         # kind of hack (it is so far not possible to only perform cut)
         img = Image.new('RGB', (PX_WIDTH, 1), (255, 255, 255))
         status = send(instructions=convert(self.qlr, [img], "62"), printer_identifier="usb://0x04f9:0x2042",
-             backend_identifier="pyusb", blocking=True)
+                      backend_identifier="pyusb", blocking=True)
 
         if False in (status["did_print"], status["ready_for_next_job"]):
             raise QL700Exception()
 
     print.__action__ = ActionMetadata(free=True, blocking=True)
     cut.__action__ = ActionMetadata(free=True, blocking=True)
-

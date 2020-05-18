@@ -1,5 +1,10 @@
-from typing import Set, Optional, List
+from typing import Optional, List, FrozenSet
 import atexit
+import os
+
+from pydobot import dobot
+from serial.tools import list_ports
+import quaternion
 
 from arcor2.data.common import StrEnum
 from arcor2.object_types import Robot
@@ -9,9 +14,7 @@ from arcor2.action import action
 from arcor2.exceptions import Arcor2Exception
 import arcor2.helpers as hlp
 
-from pydobot import dobot
-from serial.tools import list_ports
-import quaternion
+import arcor2_dobot
 
 # TODO pid as __init__ parameter?
 # TODO jogging
@@ -31,14 +34,16 @@ MOVE_TYPE_MAPPING = {
 }
 
 
-class Dobot(Robot):
+class DobotMagician(Robot):
     """
     Dobot Magician.
     """
 
-    def __init__(self, obj_id: str, pose: Pose, collision_model: Optional[Models] = None) -> None:
+    urdf_package_path = os.path.join(os.path.dirname(arcor2_dobot.__file__), "data", "dobot-magician.zip")
 
-        super(Robot, self).__init__(obj_id, pose, collision_model)
+    def __init__(self, obj_id: str, name: str, pose: Pose, collision_model: Optional[Models] = None) -> None:
+
+        super(Robot, self).__init__(obj_id, name, pose, collision_model)
 
         ports = list_ports.comports()  # from https://github.com/luismesas/pydobot/pull/21
         for thing in ports:
@@ -54,8 +59,14 @@ class Dobot(Robot):
     def cleanup(self):
         self._dobot.close()
 
-    def get_end_effectors_ids(self) -> Set[str]:
-        return {"default"}
+    def get_end_effectors_ids(self) -> FrozenSet[str]:
+        return frozenset({"default"})
+
+    def grippers(self) -> FrozenSet[str]:
+        return frozenset()
+
+    def suctions(self) -> FrozenSet[str]:
+        return frozenset({"default"})
 
     def get_end_effector_pose(self, end_effector_id: str) -> Pose:  # global pose
         x, y, z, r = self._dobot.pose()[0:4]  # in mm
@@ -119,6 +130,6 @@ class Dobot(Robot):
     release.__action__ = ActionMetadata(free=True, blocking=True)
 
 
-Dobot.DYNAMIC_PARAMS = {
-    "end_effector_id": (Dobot.get_end_effectors_ids.__name__, set()),
+DobotMagician.DYNAMIC_PARAMS = {
+    "end_effector_id": (DobotMagician.get_end_effectors_ids.__name__, set()),
 }
