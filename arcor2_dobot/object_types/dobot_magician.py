@@ -69,19 +69,19 @@ class DobotMagician(Robot):
         return frozenset({"default"})
 
     def get_end_effector_pose(self, end_effector_id: str) -> Pose:  # global pose
-        x, y, z, r = self._dobot.pose()[0:4]  # in mm
+        pos = self._dobot.position()  # in mm
 
         p = Pose()
-        p.position.x = x / 1000.0
-        p.position.y = y / 1000.0
-        p.position.z = z / 1000.0
-        p.orientation.set_from_quaternion(quaternion.from_euler_angles(0, 0, r))
+        p.position.x = pos.x / 1000.0
+        p.position.y = pos.y / 1000.0
+        p.position.z = pos.z / 1000.0
+        p.orientation.set_from_quaternion(quaternion.from_euler_angles(0, 0, self._dobot.r))
 
         return hlp.make_pose_abs(self.pose, p)
 
     def robot_joints(self) -> List[Joint]:
 
-        joints = self._dobot.pose()[4:]  # TODO save end effector rotation as the last joint?
+        joints = self._dobot.joints()
         ret = []
         for idx, j in enumerate(joints):
             ret.append(Joint(f"joint{idx+1}", j))
