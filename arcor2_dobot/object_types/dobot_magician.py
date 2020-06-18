@@ -44,17 +44,7 @@ class DobotMagician(Robot):
     def __init__(self, obj_id: str, name: str, pose: Pose, collision_model: Optional[Models] = None) -> None:
 
         super(Robot, self).__init__(obj_id, name, pose, collision_model)
-
-        ports = list_ports.comports()  # from https://github.com/luismesas/pydobot/pull/21
-        for thing in ports:
-            if thing.vid == 6790 and thing.pid == 29987:
-                port = thing.device
-                break
-        else:
-            raise Arcor2Exception("Dobot not found!")
-
-        self._dobot = dobot.Dobot(port)  # TODO rather use something like /dev/dobot?
-        atexit.register(self.cleanup)
+        self._dobot = dobot.Dobot("/dev/dobot")  # TODO get device from object configuration
 
     def cleanup(self):
         self._dobot.close()
@@ -82,11 +72,13 @@ class DobotMagician(Robot):
     def robot_joints(self) -> List[Joint]:
 
         joints = self._dobot.joints()
-        ret = []
-        for idx, j in enumerate(joints):
-            ret.append(Joint(f"joint{idx+1}", j))
-
-        return ret
+        return [
+            Joint("magician_joint_1", joints.j1),
+            Joint("magician_joint_2", joints.j2),
+            Joint("magician_joint_3", joints.j3-joints.j2),
+            Joint("magician_joint_4", 0),
+            Joint("magician_joint_5", joints.j4),
+            ]
 
     @action
     def home(self):
