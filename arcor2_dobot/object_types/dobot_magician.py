@@ -1,17 +1,14 @@
 from typing import Optional, List, FrozenSet
-import atexit
 import os
 
 from pydobot import dobot
-from serial.tools import list_ports
 import quaternion
 
 from arcor2.data.common import StrEnum
 from arcor2.object_types import Robot
-from arcor2.data.common import Pose, ActionMetadata, Joint
+from arcor2.data.common import Pose, ActionMetadata, Joint, ProjectRobotJoints
 from arcor2.data.object_type import Models
 from arcor2.action import action
-from arcor2.exceptions import Arcor2Exception
 import arcor2.helpers as hlp
 
 import arcor2_dobot
@@ -76,9 +73,16 @@ class DobotMagician(Robot):
             Joint("magician_joint_1", joints.j1),
             Joint("magician_joint_2", joints.j2),
             Joint("magician_joint_3", joints.j3-joints.j2),
-            Joint("magician_joint_4", 0),
+            Joint("magician_joint_4", joints.j2-joints.j3),
             Joint("magician_joint_5", joints.j4),
             ]
+
+    def move_to_pose(self, target_pose: Pose, end_effector: str, speed: float) -> None:
+        self.move(target_pose, MoveType.LINEAR, speed*100, 50.0)
+
+    def move_to_joints(self, target_joints: ProjectRobotJoints, speed: float) -> None:
+        assert target_joints.robot_id == self.id
+        raise NotImplementedError("Dobot does not support setting joints so far.")
 
     @action
     def home(self):
@@ -89,7 +93,7 @@ class DobotMagician(Robot):
         self._dobot.wait_for_cmd(self._dobot.home())
 
     @action
-    def move(self, pose: Pose, move_type: MoveType, velocity: float, acceleration: float) -> None:
+    def move(self, pose: Pose, move_type: MoveType, velocity: float = 50., acceleration: float = 50.) -> None:
         """
         Moves the robot's end-effector to a specific pose.
         :param pose: Target pose.
@@ -98,6 +102,9 @@ class DobotMagician(Robot):
         :param acceleration: Acceleration of move (percent).
         :return:
         """
+
+        assert .0 <= velocity <= 100.
+        assert .0 <= acceleration <= 100.
 
         rp = hlp.make_pose_rel(self.pose, pose)
         rotation = quaternion.as_euler_angles(rp.orientation.as_quaternion())[2]
