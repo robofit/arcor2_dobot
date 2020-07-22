@@ -1,11 +1,12 @@
-from typing import Optional, List, FrozenSet
+from typing import Optional, List, Set
 import os
 
 from pydobot import dobot  # type: ignore
 import quaternion  # type: ignore
 
+from arcor2 import DynamicParamTuple as DPT
 from arcor2.data.common import StrEnum
-from arcor2.object_types import Robot
+from arcor2.object_types.abstract import Robot
 from arcor2.data.common import Pose, ActionMetadata, Joint, ProjectRobotJoints
 from arcor2.data.object_type import Models
 from arcor2.action import action
@@ -49,14 +50,14 @@ class DobotMagician(Robot):
     def cleanup(self):
         self._dobot.close()
 
-    def get_end_effectors_ids(self) -> FrozenSet[str]:
-        return frozenset({"default"})
+    def get_end_effectors_ids(self) -> Set[str]:
+        return {"default"}
 
-    def grippers(self) -> FrozenSet[str]:
-        return frozenset()
+    def grippers(self) -> Set[str]:
+        return set()
 
-    def suctions(self) -> FrozenSet[str]:
-        return frozenset({"default"})
+    def suctions(self) -> Set[str]:
+        return {"default"}
 
     def get_end_effector_pose(self, end_effector_id: str) -> Pose:  # global pose
         pos = self._dobot.position()  # in mm
@@ -125,12 +126,12 @@ class DobotMagician(Robot):
     def release(self) -> None:
         self._dobot.wait_for_cmd(self._dobot.suck(False))
 
-    home.__action__ = ActionMetadata(free=True, blocking=True)
-    move.__action__ = ActionMetadata(free=True, blocking=True)
-    suck.__action__ = ActionMetadata(free=True, blocking=True)
-    release.__action__ = ActionMetadata(free=True, blocking=True)
+    home.__action__ = ActionMetadata(blocking=True)  # type: ignore
+    move.__action__ = ActionMetadata(blocking=True)  # type: ignore
+    suck.__action__ = ActionMetadata(blocking=True)  # type: ignore
+    release.__action__ = ActionMetadata(blocking=True)  # type: ignore
 
 
 DobotMagician.DYNAMIC_PARAMS = {
-    "end_effector_id": (DobotMagician.get_end_effectors_ids.__name__, set()),
+    "end_effector_id": DPT(DobotMagician.get_end_effectors_ids.__name__, set()),
 }
