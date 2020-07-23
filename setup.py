@@ -14,7 +14,7 @@ setup(
     author_email='imaterna@fit.vutbr.cz',
     description='',
     install_requires=[
-        'arcor2==0.6.*',
+        'arcor2==0.8.0',
         'pydobot'
     ],
     zip_safe=False

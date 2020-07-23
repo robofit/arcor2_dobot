@@ -1,15 +1,16 @@
-from typing import Optional, List, FrozenSet
+from typing import Optional, List, Set
 import os
 
-from pydobot import dobot
-import quaternion
+from pydobot import dobot  # type: ignore
+import quaternion  # type: ignore
 
+from arcor2 import DynamicParamTuple as DPT
 from arcor2.data.common import StrEnum
-from arcor2.object_types import Robot
+from arcor2.object_types.abstract import Robot
 from arcor2.data.common import Pose, ActionMetadata, Joint, ProjectRobotJoints
 from arcor2.data.object_type import Models
 from arcor2.action import action
-import arcor2.helpers as hlp
+import arcor2.transformations as tr
 
 import arcor2_dobot
 
@@ -43,17 +44,20 @@ class DobotMagician(Robot):
         super(Robot, self).__init__(obj_id, name, pose, collision_model)
         self._dobot = dobot.Dobot("/dev/dobot")  # TODO get device from object configuration
 
+        if int(os.getenv("ARCOR2_DOBOT_CALIBRATE_ON_INIT", 0)):
+            self.home()
+
     def cleanup(self):
         self._dobot.close()
 
-    def get_end_effectors_ids(self) -> FrozenSet[str]:
-        return frozenset({"default"})
+    def get_end_effectors_ids(self) -> Set[str]:
+        return {"default"}
 
-    def grippers(self) -> FrozenSet[str]:
-        return frozenset()
+    def grippers(self) -> Set[str]:
+        return set()
 
-    def suctions(self) -> FrozenSet[str]:
-        return frozenset({"default"})
+    def suctions(self) -> Set[str]:
+        return {"default"}
 
     def get_end_effector_pose(self, end_effector_id: str) -> Pose:  # global pose
         pos = self._dobot.position()  # in mm
@@ -64,7 +68,7 @@ class DobotMagician(Robot):
         p.position.z = pos.z / 1000.0
         p.orientation.set_from_quaternion(quaternion.from_euler_angles(0, 0, self._dobot.r))
 
-        return hlp.make_pose_abs(self.pose, p)
+        return tr.make_pose_abs(self.pose, p)
 
     def robot_joints(self) -> List[Joint]:
 
@@ -77,11 +81,10 @@ class DobotMagician(Robot):
             Joint("magician_joint_5", joints.j4),
             ]
 
-    def move_to_pose(self, target_pose: Pose, end_effector: str, speed: float) -> None:
+    def move_to_pose(self, end_effector: str, target_pose: Pose, speed: float) -> None:
         self.move(target_pose, MoveType.LINEAR, speed*100, 50.0)
 
-    def move_to_joints(self, target_joints: ProjectRobotJoints, speed: float) -> None:
-        assert target_joints.robot_id == self.id
+    def move_to_joints(self, target_joints: List[Joint], speed: float) -> None:
         raise NotImplementedError("Dobot does not support setting joints so far.")
 
     @action
@@ -106,7 +109,7 @@ class DobotMagician(Robot):
         assert .0 <= velocity <= 100.
         assert .0 <= acceleration <= 100.
 
-        rp = hlp.make_pose_rel(self.pose, pose)
+        rp = tr.make_pose_rel(self.pose, pose)
         rotation = quaternion.as_euler_angles(rp.orientation.as_quaternion())[2]
         self._dobot.speed(velocity, acceleration)
         self._dobot.wait_for_cmd(self._dobot.move_to(rp.position.x * 1000.0,
@@ -123,12 +126,12 @@ class DobotMagician(Robot):
     def release(self) -> None:
         self._dobot.wait_for_cmd(self._dobot.suck(False))
 
-    home.__action__ = ActionMetadata(free=True, blocking=True)
-    move.__action__ = ActionMetadata(free=True, blocking=True)
-    suck.__action__ = ActionMetadata(free=True, blocking=True)
-    release.__action__ = ActionMetadata(free=True, blocking=True)
+    home.__action__ = ActionMetadata(blocking=True)  # type: ignore
+    move.__action__ = ActionMetadata(blocking=True)  # type: ignore
+    suck.__action__ = ActionMetadata(blocking=True)  # type: ignore
+    release.__action__ = ActionMetadata(blocking=True)  # type: ignore
 
 
 DobotMagician.DYNAMIC_PARAMS = {
-    "end_effector_id": (DobotMagician.get_end_effectors_ids.__name__, set()),
+    "end_effector_id": DPT(DobotMagician.get_end_effectors_ids.__name__, set()),
 }
