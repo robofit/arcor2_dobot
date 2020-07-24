@@ -9,7 +9,6 @@ from arcor2.data.common import StrEnum
 from arcor2.object_types.abstract import Robot
 from arcor2.data.common import Pose, ActionMetadata, Joint, ProjectRobotJoints
 from arcor2.data.object_type import Models
-from arcor2.action import action
 import arcor2.transformations as tr
 
 import arcor2_dobot
@@ -87,7 +86,6 @@ class DobotMagician(Robot):
     def move_to_joints(self, target_joints: List[Joint], speed: float) -> None:
         raise NotImplementedError("Dobot does not support setting joints so far.")
 
-    @action
     def home(self):
         """
         Run the homing procedure.
@@ -95,7 +93,6 @@ class DobotMagician(Robot):
 
         self._dobot.wait_for_cmd(self._dobot.home())
 
-    @action
     def move(self, pose: Pose, move_type: MoveType, velocity: float = 50., acceleration: float = 50.) -> None:
         """
         Moves the robot's end-effector to a specific pose.
@@ -118,11 +115,9 @@ class DobotMagician(Robot):
                                                      rotation,
                                                      MOVE_TYPE_MAPPING[move_type]))
 
-    @action
     def suck(self) -> None:
         self._dobot.wait_for_cmd(self._dobot.suck(True))
 
-    @action
     def release(self) -> None:
         self._dobot.wait_for_cmd(self._dobot.suck(False))
 
