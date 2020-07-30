@@ -1,17 +1,17 @@
-from typing import Optional, List, Set
 import os
+from typing import List, Optional, Set
+
+import arcor2.transformations as tr
+from arcor2 import DynamicParamTuple as DPT
+from arcor2.data.common import ActionMetadata, Joint, Pose, StrEnum
+from arcor2.data.object_type import Models
+from arcor2.object_types.abstract import Robot
 
 from pydobot import dobot  # type: ignore
+
 import quaternion  # type: ignore
 
-from arcor2 import DynamicParamTuple as DPT
-from arcor2.data.common import StrEnum
-from arcor2.object_types.abstract import Robot
-from arcor2.data.common import Pose, ActionMetadata, Joint, ProjectRobotJoints
-from arcor2.data.object_type import Models
-import arcor2.transformations as tr
-
-import arcor2_dobot
+import arcor2_fit_demo
 
 # TODO pid as __init__ parameter?
 # TODO jogging
@@ -36,7 +36,9 @@ class DobotMagician(Robot):
     Dobot Magician.
     """
 
-    urdf_package_path = os.path.join(os.path.dirname(arcor2_dobot.__file__), "data", "dobot-magician.zip")
+    _ABSTRACT = False
+
+    urdf_package_path = os.path.join(os.path.dirname(arcor2_fit_demo.__file__), "data", "dobot-magician.zip")
 
     def __init__(self, obj_id: str, name: str, pose: Pose, collision_model: Optional[Models] = None) -> None:
 
@@ -75,13 +77,13 @@ class DobotMagician(Robot):
         return [
             Joint("magician_joint_1", joints.j1),
             Joint("magician_joint_2", joints.j2),
-            Joint("magician_joint_3", joints.j3-joints.j2),
-            Joint("magician_joint_4", joints.j2-joints.j3),
-            Joint("magician_joint_5", joints.j4),
-            ]
+            Joint("magician_joint_3", joints.j3 - joints.j2),
+            Joint("magician_joint_4", joints.j2 - joints.j3),
+            Joint("magician_joint_5", joints.j4)
+        ]
 
     def move_to_pose(self, end_effector: str, target_pose: Pose, speed: float) -> None:
-        self.move(target_pose, MoveType.LINEAR, speed*100, 50.0)
+        self.move(target_pose, MoveType.LINEAR, speed * 100, 50.0)
 
     def move_to_joints(self, target_joints: List[Joint], speed: float) -> None:
         raise NotImplementedError("Dobot does not support setting joints so far.")
