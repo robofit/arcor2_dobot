@@ -5,16 +5,23 @@ import arcor2.transformations as tr
 from arcor2 import DynamicParamTuple as DPT
 from arcor2.data.common import ActionMetadata, Joint, Pose, StrEnum
 from arcor2.data.object_type import Models
+from arcor2.exceptions import Arcor2Exception
 from arcor2.object_types.abstract import Robot
 
 from pydobot import dobot  # type: ignore
 
 import quaternion  # type: ignore
 
+import serial  # type: ignore
+
 import arcor2_fit_demo
 
 # TODO pid as __init__ parameter?
 # TODO jogging
+
+
+class DobotException(Arcor2Exception):
+    pass
 
 
 class MoveType(StrEnum):
@@ -43,7 +50,10 @@ class DobotMagician(Robot):
     def __init__(self, obj_id: str, name: str, pose: Pose, collision_model: Optional[Models] = None) -> None:
 
         super(Robot, self).__init__(obj_id, name, pose, collision_model)
-        self._dobot = dobot.Dobot("/dev/dobot")  # TODO get device from object configuration
+        try:
+            self._dobot = dobot.Dobot("/dev/dobot")  # TODO get device from object configuration
+        except serial.serialutil.SerialException as e:
+            raise DobotException("Could not connect to the robot.") from e
 
         if int(os.getenv("ARCOR2_DOBOT_CALIBRATE_ON_INIT", 0)):
             self.home()
