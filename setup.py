@@ -12,11 +12,11 @@ setup(
     url='https://github.com/robofit/arcor2_fit_demo',
     license='LGPL',
     author='Robo@FIT',
-    author_email='imaterna@fit.vutbr.cz',
+    author_email='imaterna@fit.vut.cz',
     description='',
-    setup_requires=['bad-setuptools-git-version'],
+    setup_requires=['another-setuptools-git-version'],
     install_requires=[
-        'arcor2==0.8.0b1.*',
+        'arcor2>=0.8.0b6',
         'pydobot'
     ],
     zip_safe=False
