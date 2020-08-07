@@ -1,12 +1,12 @@
 import os
-from typing import List, Optional, Set
+from dataclasses import dataclass
+from typing import List, Set, cast
 
 import arcor2.transformations as tr
 from arcor2 import DynamicParamTuple as DPT
 from arcor2.data.common import ActionMetadata, Joint, Pose, StrEnum
-from arcor2.data.object_type import Models
 from arcor2.exceptions import Arcor2Exception
-from arcor2.object_types.abstract import Robot
+from arcor2.object_types.abstract import Robot, Settings
 
 from pydobot import dobot  # type: ignore
 
@@ -18,6 +18,13 @@ import arcor2_fit_demo
 
 # TODO pid as __init__ parameter?
 # TODO jogging
+
+
+@dataclass
+class DobotSettings(Settings):
+
+    port: str = "/dev/dobot"
+    calibrate_on_init: bool = False
 
 
 class DobotException(Arcor2Exception):
@@ -47,16 +54,19 @@ class DobotMagician(Robot):
 
     urdf_package_path = os.path.join(os.path.dirname(arcor2_fit_demo.__file__), "data", "dobot-magician.zip")
 
-    def __init__(self, obj_id: str, name: str, pose: Pose, collision_model: Optional[Models] = None) -> None:
-
-        super(Robot, self).__init__(obj_id, name, pose, collision_model)
+    def __init__(self, obj_id: str, name: str, pose: Pose, settings: DobotSettings) -> None:
+        super(DobotMagician, self).__init__(obj_id, name, pose, settings)
         try:
-            self._dobot = dobot.Dobot("/dev/dobot")  # TODO get device from object configuration
+            self._dobot = dobot.Dobot(self.settings.port)
         except serial.serialutil.SerialException as e:
             raise DobotException("Could not connect to the robot.") from e
 
-        if int(os.getenv("ARCOR2_DOBOT_CALIBRATE_ON_INIT", 0)):
+        if self.settings.calibrate_on_init:
             self.home()
+
+    @property
+    def settings(self) -> DobotSettings:
+        return cast(DobotSettings, super(DobotMagician, self).settings)
 
     def cleanup(self):
         self._dobot.close()
