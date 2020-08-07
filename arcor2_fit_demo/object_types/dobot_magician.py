@@ -1,20 +1,34 @@
-from typing import Optional, List, Set
 import os
+from dataclasses import dataclass
+from typing import List, Set, cast
+
+import arcor2.transformations as tr
+from arcor2 import DynamicParamTuple as DPT
+from arcor2.data.common import ActionMetadata, Joint, Pose, StrEnum
+from arcor2.exceptions import Arcor2Exception
+from arcor2.object_types.abstract import Robot, Settings
 
 from pydobot import dobot  # type: ignore
+
 import quaternion  # type: ignore
 
-from arcor2 import DynamicParamTuple as DPT
-from arcor2.data.common import StrEnum
-from arcor2.object_types.abstract import Robot
-from arcor2.data.common import Pose, ActionMetadata, Joint, ProjectRobotJoints
-from arcor2.data.object_type import Models
-import arcor2.transformations as tr
+import serial  # type: ignore
 
-import arcor2_dobot
+import arcor2_fit_demo
 
 # TODO pid as __init__ parameter?
 # TODO jogging
+
+
+@dataclass
+class DobotSettings(Settings):
+
+    port: str = "/dev/dobot"
+    calibrate_on_init: bool = False
+
+
+class DobotException(Arcor2Exception):
+    pass
 
 
 class MoveType(StrEnum):
@@ -36,15 +50,23 @@ class DobotMagician(Robot):
     Dobot Magician.
     """
 
-    urdf_package_path = os.path.join(os.path.dirname(arcor2_dobot.__file__), "data", "dobot-magician.zip")
+    _ABSTRACT = False
 
-    def __init__(self, obj_id: str, name: str, pose: Pose, collision_model: Optional[Models] = None) -> None:
+    urdf_package_path = os.path.join(os.path.dirname(arcor2_fit_demo.__file__), "data", "dobot-magician.zip")
 
-        super(Robot, self).__init__(obj_id, name, pose, collision_model)
-        self._dobot = dobot.Dobot("/dev/dobot")  # TODO get device from object configuration
+    def __init__(self, obj_id: str, name: str, pose: Pose, settings: DobotSettings) -> None:
+        super(DobotMagician, self).__init__(obj_id, name, pose, settings)
+        try:
+            self._dobot = dobot.Dobot(self.settings.port)
+        except serial.serialutil.SerialException as e:
+            raise DobotException("Could not connect to the robot.") from e
 
-        if int(os.getenv("ARCOR2_DOBOT_CALIBRATE_ON_INIT", 0)):
+        if self.settings.calibrate_on_init:
             self.home()
+
+    @property
+    def settings(self) -> DobotSettings:
+        return cast(DobotSettings, super(DobotMagician, self).settings)
 
     def cleanup(self):
         self._dobot.close()
@@ -75,13 +97,13 @@ class DobotMagician(Robot):
         return [
             Joint("magician_joint_1", joints.j1),
             Joint("magician_joint_2", joints.j2),
-            Joint("magician_joint_3", joints.j3-joints.j2),
-            Joint("magician_joint_4", joints.j2-joints.j3),
-            Joint("magician_joint_5", joints.j4),
-            ]
+            Joint("magician_joint_3", joints.j3 - joints.j2),
+            Joint("magician_joint_4", joints.j2 - joints.j3),
+            Joint("magician_joint_5", joints.j4)
+        ]
 
     def move_to_pose(self, end_effector: str, target_pose: Pose, speed: float) -> None:
-        self.move(target_pose, MoveType.LINEAR, speed*100, 50.0)
+        self.move(target_pose, MoveType.LINEAR, speed * 100, 50.0)
 
     def move_to_joints(self, target_joints: List[Joint], speed: float) -> None:
         raise NotImplementedError("Dobot does not support setting joints so far.")
