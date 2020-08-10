@@ -1,3 +1,4 @@
+
 import os
 from dataclasses import dataclass
 from typing import List, Set, cast
@@ -98,7 +99,7 @@ class DobotMagician(Robot):
             Joint("magician_joint_1", joints.j1),
             Joint("magician_joint_2", joints.j2),
             Joint("magician_joint_3", joints.j3 - joints.j2),
-            Joint("magician_joint_4", joints.j2 - joints.j3),
+            Joint("magician_joint_4", -joints.j3),
             Joint("magician_joint_5", joints.j4)
         ]
 
