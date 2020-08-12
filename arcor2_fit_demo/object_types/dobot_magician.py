@@ -1,5 +1,5 @@
-
 import os
+import time
 from dataclasses import dataclass
 from typing import List, Set, cast
 
@@ -26,6 +26,7 @@ class DobotSettings(Settings):
 
     port: str = "/dev/dobot"
     calibrate_on_init: bool = False
+    simulator: bool = False
 
 
 class DobotException(Arcor2Exception):
@@ -37,6 +38,15 @@ class MoveType(StrEnum):
     JUMP: str = "JUMP"
     JOINTS: str = "JOINTS"
     LINEAR: str = "LINEAR"
+
+
+class Joints(StrEnum):
+
+    J1: str = "magician_joint_1"
+    J2: str = "magician_joint_2"
+    J3: str = "magician_joint_3"
+    J4: str = "magician_joint_4"
+    J5: str = "magician_joint_5"
 
 
 MOVE_TYPE_MAPPING = {
@@ -57,20 +67,29 @@ class DobotMagician(Robot):
 
     def __init__(self, obj_id: str, name: str, pose: Pose, settings: DobotSettings) -> None:
         super(DobotMagician, self).__init__(obj_id, name, pose, settings)
-        try:
-            self._dobot = dobot.Dobot(self.settings.port)
-        except serial.serialutil.SerialException as e:
-            raise DobotException("Could not connect to the robot.") from e
 
-        if self.settings.calibrate_on_init:
-            self.home()
+        if not self.settings.simulator:
+
+            try:
+                self._dobot = dobot.Dobot(self.settings.port)
+            except serial.serialutil.SerialException as e:
+                raise DobotException("Could not connect to the robot.") from e
+
+            if self.settings.calibrate_on_init:
+                self.home()
+
+        else:
+
+            self._pose = Pose()
 
     @property
     def settings(self) -> DobotSettings:
         return cast(DobotSettings, super(DobotMagician, self).settings)
 
     def cleanup(self):
-        self._dobot.close()
+
+        if not self.settings.simulator:
+            self._dobot.close()
 
     def get_end_effectors_ids(self) -> Set[str]:
         return {"default"}
@@ -82,6 +101,10 @@ class DobotMagician(Robot):
         return {"default"}
 
     def get_end_effector_pose(self, end_effector_id: str) -> Pose:  # global pose
+
+        if self.settings.simulator:
+            return self._pose
+
         pos = self._dobot.position()  # in mm
 
         p = Pose()
@@ -94,13 +117,22 @@ class DobotMagician(Robot):
 
     def robot_joints(self) -> List[Joint]:
 
+        if self.settings.simulator:
+            return [
+                Joint(Joints.J1, 0),
+                Joint(Joints.J2, 0),
+                Joint(Joints.J3, 0),
+                Joint(Joints.J4, 0),
+                Joint(Joints.J5, 0)
+            ]
+
         joints = self._dobot.joints()
         return [
-            Joint("magician_joint_1", joints.j1),
-            Joint("magician_joint_2", joints.j2),
-            Joint("magician_joint_3", joints.j3 - joints.j2),
-            Joint("magician_joint_4", -joints.j3),
-            Joint("magician_joint_5", joints.j4)
+            Joint(Joints.J1, joints.j1),
+            Joint(Joints.J2, joints.j2),
+            Joint(Joints.J3, joints.j3 - joints.j2),
+            Joint(Joints.J4, -joints.j3),
+            Joint(Joints.J5, joints.j4)
         ]
 
     def move_to_pose(self, end_effector: str, target_pose: Pose, speed: float) -> None:
@@ -113,6 +145,10 @@ class DobotMagician(Robot):
         """
         Run the homing procedure.
         """
+
+        if self.settings.simulator:
+            time.sleep(2.0)
+            return
 
         self._dobot.wait_for_cmd(self._dobot.home())
 
@@ -129,6 +165,11 @@ class DobotMagician(Robot):
         assert .0 <= velocity <= 100.
         assert .0 <= acceleration <= 100.
 
+        if self.settings.simulator:
+            time.sleep((100.0 - velocity) * 0.05)
+            self._pose = pose
+            return
+
         rp = tr.make_pose_rel(self.pose, pose)
         rotation = quaternion.as_euler_angles(rp.orientation.as_quaternion())[2]
         self._dobot.speed(velocity, acceleration)
@@ -139,10 +180,14 @@ class DobotMagician(Robot):
                                                      MOVE_TYPE_MAPPING[move_type]))
 
     def suck(self) -> None:
-        self._dobot.wait_for_cmd(self._dobot.suck(True))
+
+        if not self.settings.simulator:
+            self._dobot.wait_for_cmd(self._dobot.suck(True))
 
     def release(self) -> None:
-        self._dobot.wait_for_cmd(self._dobot.suck(False))
+
+        if not self.settings.simulator:
+            self._dobot.wait_for_cmd(self._dobot.suck(False))
 
     home.__action__ = ActionMetadata(blocking=True)  # type: ignore
     move.__action__ = ActionMetadata(blocking=True)  # type: ignore
