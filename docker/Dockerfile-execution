@@ -1,0 +1,9 @@
+ARG version=latest
+FROM arcor2/arcor2_upload_fit_demo:$version
+
+RUN ln -fs /root/arcor2/docker/start-execution.sh /start.sh
+
+
+EXPOSE 5009
+ 
+CMD ["/bin/sh", "/start.sh"]
