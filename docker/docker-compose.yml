@@ -24,7 +24,7 @@ services:
       - fitnet
 
   mocks:
-    image: arcor2/arcor2_mocks:${ARCOR2_VERSION:?ARCOR2_VERSION env variable not set}
+    image: arcor2/arcor2_mocks:${ARCOR2_BUILD_VERSION:?ARCOR2_BUILD_VERSION env variable not set}
     container_name: mocks
     networks:
       - fitnet
@@ -42,7 +42,7 @@ services:
       - fitnet
  
   execution:
-    image: arcor2/arcor2_execution:${ARCOR2_EXECUTION_VERSION:?ARCOR2_EXECUTION_VERSION env variable not set}
+    image: arcor2/arcor2_execution_fit_demo:${ARCOR2_EXECUTION_VERSION:?ARCOR2_EXECUTION_VERSION env variable not set}
     container_name: execution
     environment:
       - ARCOR2_BUILDER_URL=http://build:5007
