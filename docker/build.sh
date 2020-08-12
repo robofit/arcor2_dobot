@@ -1,3 +1,4 @@
 #!/bin/bash 
-docker build --no-cache -f Dockerfile -t arcor2/arcor2_base_fit_demo:`cat ./VERSION`  ../ --build-arg version=`cat ./VERSION`
-docker build --no-cache -f Dockerfile-arserver -t arcor2/arcor2_arserver_fit_demo:`cat ./VERSION`  ../ --build-arg version=`cat ./VERSION`
+VERSION=`cd ../../arcor2;python3 setup.py --version;cd - > /dev/null`
+docker build --no-cache -f Dockerfile -t arcor2/arcor2_upload_fit_demo:$VERSION  ../ --build-arg version=$VERSION
+docker build --no-cache -f Dockerfile-arserver -t arcor2/arcor2_arserver_fit_demo:$VERSION  ../ --build-arg version=$VERSION

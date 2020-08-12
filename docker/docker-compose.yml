@@ -20,10 +20,14 @@ services:
       - ARCOR2_BUILDER_URL=http://build:5007
       - ARCOR2_DATA_PATH=/root/data
       - PYTHONPATH=/root/arcor2_fit_demo
+    networks:
+      - fitnet
 
   mocks:
     image: arcor2/arcor2_mocks:${ARCOR2_VERSION:?ARCOR2_VERSION env variable not set}
     container_name: mocks
+    networks:
+      - fitnet
 
   build:
     image: arcor2/arcor2_build:${ARCOR2_BUILD_VERSION:?ARCOR2_BUILD_VERSION env variable not set}
@@ -34,6 +38,8 @@ services:
       - ARCOR2_DATA_PATH=/root/data
     ports:
       - "5007:5007"
+    networks:       
+      - fitnet
  
   execution:
     image: arcor2/arcor2_execution:${ARCOR2_EXECUTION_VERSION:?ARCOR2_EXECUTION_VERSION env variable not set}
@@ -43,9 +49,12 @@ services:
       - ARCOR2_DATA_PATH=/root/data
     ports:
       - "5009:5009"
+    networks:
+      - fitnet
 
 volumes:
   mongodb-fit-demo:   
 
-
+networks:
+  fitnet:
 
