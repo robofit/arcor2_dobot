@@ -16,7 +16,7 @@ setup(
     description='',
     setup_requires=['another-setuptools-git-version'],
     install_requires=[
-        'arcor2>=0.8.0b6',
+        'arcor2>=0.8.0b6.dev*',
         'pydobot'
     ],
     zip_safe=False
