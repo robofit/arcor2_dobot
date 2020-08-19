@@ -1,3 +1,4 @@
+import math
 import time
 from dataclasses import dataclass
 from typing import List, Set, cast
@@ -5,14 +6,13 @@ from typing import List, Set, cast
 import arcor2.transformations as tr
 from arcor2 import DynamicParamTuple as DPT
 from arcor2.data.common import ActionMetadata, Joint, Pose, StrEnum
+from arcor2.data.robot import RobotType
 from arcor2.exceptions import Arcor2Exception
 from arcor2.object_types.abstract import Robot, Settings
 
 from pydobot import dobot  # type: ignore
 
 import quaternion  # type: ignore
-
-import serial  # type: ignore
 
 # TODO jogging
 
@@ -45,6 +45,8 @@ MOVE_TYPE_MAPPING = {
 
 class AbstractDobot(Robot):
 
+    robot_type = RobotType.SCARA
+
     def __init__(self, obj_id: str, name: str, pose: Pose, settings: DobotSettings) -> None:
         super(AbstractDobot, self).__init__(obj_id, name, pose, settings)
 
@@ -52,7 +54,7 @@ class AbstractDobot(Robot):
 
             try:
                 self._dobot = dobot.Dobot(self.settings.port)
-            except serial.serialutil.SerialException as e:
+            except dobot.DobotException as e:
                 raise DobotException("Could not connect to the robot.") from e
 
             if self.settings.calibrate_on_init:
@@ -61,6 +63,7 @@ class AbstractDobot(Robot):
         else:
 
             self._pose = Pose()
+            self._pose.orientation.set_from_quaternion(quaternion.from_euler_angles(0, math.pi, 0))
 
     @property
     def settings(self) -> DobotSettings:
@@ -91,7 +94,7 @@ class AbstractDobot(Robot):
         p.position.x = pos.x / 1000.0
         p.position.y = pos.y / 1000.0
         p.position.z = pos.z / 1000.0
-        p.orientation.set_from_quaternion(quaternion.from_euler_angles(0, 0, pos.r))
+        p.orientation.set_from_quaternion(quaternion.from_euler_angles(0, math.pi, pos.r))
 
         return tr.make_pose_abs(self.pose, p)
 
@@ -137,11 +140,15 @@ class AbstractDobot(Robot):
         rp = tr.make_pose_rel(self.pose, pose)
         rotation = quaternion.as_euler_angles(rp.orientation.as_quaternion())[2]
         self._dobot.speed(velocity, acceleration)
-        self._dobot.wait_for_cmd(self._dobot.move_to(rp.position.x * 1000.0,
-                                                     rp.position.y * 1000.0,
-                                                     rp.position.z * 1000.0,
-                                                     rotation,
-                                                     MOVE_TYPE_MAPPING[move_type]))
+        self._dobot.wait_for_cmd(
+            self._dobot.move_to(
+                rp.position.x * 1000.0,
+                rp.position.y * 1000.0,
+                rp.position.z * 1000.0,
+                rotation,
+                MOVE_TYPE_MAPPING[move_type]
+            )
+        )
 
     def suck(self) -> None:
 
