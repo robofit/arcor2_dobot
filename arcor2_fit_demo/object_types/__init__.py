@@ -1,3 +1,3 @@
-from arcor2_fit_demo.object_types.dobot_magician import DobotMagician
+from arcor2_fit_demo.object_types.abstract_dobot import AbstractDobot
 
-__all__ = [DobotMagician.__name__]
+__all__ = [AbstractDobot.__name__]
