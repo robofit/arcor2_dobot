@@ -31,8 +31,7 @@ class DobotM1(AbstractDobot):
                 Joint(Joints.J4, 0)
             ]
 
-        # joints = self._dobot.get_pose().joints.in_radians()
-        joints = self._dobot.get_pose().joints
+        joints = self._dobot.get_pose().joints.in_radians()
         return [
             Joint(Joints.J1, joints.j1),
             Joint(Joints.J2, joints.j2),

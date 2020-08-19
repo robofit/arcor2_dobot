@@ -130,6 +130,10 @@ class AbstractDobot(Robot):
             self._pose = pose
             return
 
+        alarms = self._dobot.get_alarms()
+        if alarms:
+            raise DobotException(f"Alarm(s): {','.join([alarm.name for alarm in alarms])}.")
+
         rp = tr.make_pose_rel(self.pose, pose)
         rotation = quaternion.as_euler_angles(rp.orientation.as_quaternion())[2]
         self._dobot.speed(velocity, acceleration)
