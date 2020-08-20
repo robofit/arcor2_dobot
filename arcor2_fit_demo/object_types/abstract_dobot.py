@@ -62,8 +62,8 @@ class AbstractDobot(Robot):
 
         else:
 
-            self._pose = Pose()
-            self._pose.orientation.set_from_quaternion(quaternion.from_euler_angles(0, math.pi, 0))
+            self._ee_pose = Pose()
+            self._ee_pose.orientation.set_from_quaternion(quaternion.from_euler_angles(0, math.pi, 0))
 
     @property
     def settings(self) -> DobotSettings:
@@ -86,7 +86,7 @@ class AbstractDobot(Robot):
     def get_end_effector_pose(self, end_effector_id: str) -> Pose:  # global pose
 
         if self.settings.simulator:
-            return self._pose
+            return tr.make_pose_abs(self.pose, self._ee_pose)
 
         pos = self._dobot.get_pose().position  # in mm
 
@@ -98,7 +98,7 @@ class AbstractDobot(Robot):
 
         return tr.make_pose_abs(self.pose, p)
 
-    def move_to_pose(self, end_effector: str, target_pose: Pose, speed: float) -> None:
+    def move_to_pose(self, end_effector_id: str, target_pose: Pose, speed: float) -> None:
         self.move(target_pose, MoveType.LINEAR, speed * 100, 50.0)
 
     def move_to_joints(self, target_joints: List[Joint], speed: float) -> None:
@@ -128,16 +128,17 @@ class AbstractDobot(Robot):
         assert .0 <= velocity <= 100.
         assert .0 <= acceleration <= 100.
 
+        rp = tr.make_pose_rel(self.pose, pose)
+
         if self.settings.simulator:
             time.sleep((100.0 - velocity) * 0.05)
-            self._pose = pose
+            self._ee_pose = rp
             return
 
         alarms = self._dobot.get_alarms()
         if alarms:
             raise DobotException(f"Alarm(s): {','.join([alarm.name for alarm in alarms])}.")
 
-        rp = tr.make_pose_rel(self.pose, pose)
         rotation = quaternion.as_euler_angles(rp.orientation.as_quaternion())[2]
         self._dobot.speed(velocity, acceleration)
         self._dobot.wait_for_cmd(
