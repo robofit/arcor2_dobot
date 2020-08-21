@@ -7,8 +7,7 @@ import arcor2.transformations as tr
 from arcor2 import DynamicParamTuple as DPT
 from arcor2.data.common import ActionMetadata, Joint, Pose, StrEnum
 from arcor2.data.robot import RobotType
-from arcor2.exceptions import Arcor2Exception
-from arcor2.object_types.abstract import Robot, Settings
+from arcor2.object_types.abstract import Robot, RobotException, Settings
 
 from pydobot import dobot  # type: ignore
 
@@ -25,7 +24,7 @@ class DobotSettings(Settings):
     simulator: bool = False
 
 
-class DobotException(Arcor2Exception):
+class DobotException(RobotException):
     pass
 
 
@@ -64,6 +63,12 @@ class AbstractDobot(Robot):
 
             self._ee_pose = Pose()
             self._ee_pose.orientation.set_from_quaternion(quaternion.from_euler_angles(0, math.pi, 0))
+
+    def alarms_to_exception(self) -> None:
+
+        alarms = self._dobot.get_alarms()
+        if alarms:
+            raise DobotException(f"Alarm(s): {','.join([alarm.name for alarm in alarms])}.")
 
     @property
     def settings(self) -> DobotSettings:
@@ -109,11 +114,17 @@ class AbstractDobot(Robot):
         Run the homing procedure.
         """
 
-        if self.settings.simulator:
-            time.sleep(2.0)
-            return
+        self._dobot.clear_alarms()
 
-        self._dobot.wait_for_cmd(self._dobot.home())
+        with self._move_lock:
+
+            if self.settings.simulator:
+                time.sleep(2.0)
+                return
+
+            self._dobot.wait_for_cmd(self._dobot.home())
+
+        self.alarms_to_exception()
 
     def move(self, pose: Pose, move_type: MoveType, velocity: float = 50., acceleration: float = 50.) -> None:
         """
@@ -128,28 +139,30 @@ class AbstractDobot(Robot):
         assert .0 <= velocity <= 100.
         assert .0 <= acceleration <= 100.
 
-        rp = tr.make_pose_rel(self.pose, pose)
+        self._dobot.clear_alarms()
 
-        if self.settings.simulator:
-            time.sleep((100.0 - velocity) * 0.05)
-            self._ee_pose = rp
-            return
+        with self._move_lock:
 
-        alarms = self._dobot.get_alarms()
-        if alarms:
-            raise DobotException(f"Alarm(s): {','.join([alarm.name for alarm in alarms])}.")
+            rp = tr.make_pose_rel(self.pose, pose)
 
-        rotation = quaternion.as_euler_angles(rp.orientation.as_quaternion())[2]
-        self._dobot.speed(velocity, acceleration)
-        self._dobot.wait_for_cmd(
-            self._dobot.move_to(
-                rp.position.x * 1000.0,
-                rp.position.y * 1000.0,
-                rp.position.z * 1000.0,
-                rotation,
-                MOVE_TYPE_MAPPING[move_type]
+            if self.settings.simulator:
+                time.sleep((100.0 - velocity) * 0.05)
+                self._ee_pose = rp
+                return
+
+            rotation = quaternion.as_euler_angles(rp.orientation.as_quaternion())[2]
+            self._dobot.speed(velocity, acceleration)
+            self._dobot.wait_for_cmd(
+                self._dobot.move_to(
+                    rp.position.x * 1000.0,
+                    rp.position.y * 1000.0,
+                    rp.position.z * 1000.0,
+                    rotation,
+                    MOVE_TYPE_MAPPING[move_type]
+                )
             )
-        )
+
+        self.alarms_to_exception()
 
     def suck(self) -> None:
 
